@@ -1,0 +1,16 @@
+# Development dependencies for testing and code quality
+
+# Core dependencies (from requirements.txt)
+boto3
+customtkinter
+
+# Testing
+pytest>=7.0.0
+pytest-cov>=4.0.0
+pytest-mock>=3.10.0
+moto>=4.0.0  # Mock AWS services for testing
+
+# Code quality
+flake8>=6.0.0
+black>=23.0.0
+mypy>=1.0.0
