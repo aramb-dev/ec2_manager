@@ -10,7 +10,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'ec2_manager=ec2_manager.main:main',
+            'ec2-manager=main:main',
         ],
     },
     author='Abdur-Rahman Bilal',

@@ -2,6 +2,9 @@
 
 import boto3
 from botocore.exceptions import ClientError, BotoCoreError
+import logging
+
+logger = logging.getLogger(__name__)
 
 def list_instances(session):
     """
@@ -31,10 +34,11 @@ def list_instances(session):
 
         return instances
     except ClientError as e:
-        print(f"AWS API error listing instances: {e.response['Error']['Message']}")
+        error_msg = e.response['Error']['Message']
+        logger.error(f"AWS API error listing instances: {error_msg}")
         return None
     except Exception as e:
-        print(f"Unexpected error listing instances: {str(e)}")
+        logger.error(f"Unexpected error listing instances: {str(e)}")
         return None
 
 
@@ -52,12 +56,14 @@ def start_instance(session, instance_id):
     try:
         ec2_client = session.client('ec2')
         ec2_client.start_instances(InstanceIds=[instance_id])
+        logger.info(f"Successfully started instance {instance_id}")
         return True
     except ClientError as e:
-        print(f"AWS API error starting instance {instance_id}: {e.response['Error']['Message']}")
+        error_msg = e.response['Error']['Message']
+        logger.error(f"AWS API error starting instance {instance_id}: {error_msg}")
         return False
     except Exception as e:
-        print(f"Unexpected error starting instance {instance_id}: {str(e)}")
+        logger.error(f"Unexpected error starting instance {instance_id}: {str(e)}")
         return False
 
 
@@ -75,12 +81,14 @@ def stop_instance(session, instance_id):
     try:
         ec2_client = session.client('ec2')
         ec2_client.stop_instances(InstanceIds=[instance_id])
+        logger.info(f"Successfully stopped instance {instance_id}")
         return True
     except ClientError as e:
-        print(f"AWS API error stopping instance {instance_id}: {e.response['Error']['Message']}")
+        error_msg = e.response['Error']['Message']
+        logger.error(f"AWS API error stopping instance {instance_id}: {error_msg}")
         return False
     except Exception as e:
-        print(f"Unexpected error stopping instance {instance_id}: {str(e)}")
+        logger.error(f"Unexpected error stopping instance {instance_id}: {str(e)}")
         return False
 
 
@@ -98,12 +106,14 @@ def reboot_instance(session, instance_id):
     try:
         ec2_client = session.client('ec2')
         ec2_client.reboot_instances(InstanceIds=[instance_id])
+        logger.info(f"Successfully rebooted instance {instance_id}")
         return True
     except ClientError as e:
-        print(f"AWS API error rebooting instance {instance_id}: {e.response['Error']['Message']}")
+        error_msg = e.response['Error']['Message']
+        logger.error(f"AWS API error rebooting instance {instance_id}: {error_msg}")
         return False
     except Exception as e:
-        print(f"Unexpected error rebooting instance {instance_id}: {str(e)}")
+        logger.error(f"Unexpected error rebooting instance {instance_id}: {str(e)}")
         return False
 
 
@@ -136,8 +146,9 @@ def get_instance_network_info(session, instance_id):
 
         return network_info
     except ClientError as e:
-        print(f"AWS API error getting network info for instance {instance_id}: {e.response['Error']['Message']}")
+        error_msg = e.response['Error']['Message']
+        logger.error(f"AWS API error getting network info for instance {instance_id}: {error_msg}")
         return None
     except Exception as e:
-        print(f"Unexpected error getting network info for instance {instance_id}: {str(e)}")
+        logger.error(f"Unexpected error getting network info for instance {instance_id}: {str(e)}")
         return None
