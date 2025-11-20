@@ -2,6 +2,7 @@
 
 import customtkinter as ctk
 import tkinter as tk
+from tkinter import messagebox
 from aws_connection import setup_aws_session, list_instances, start_instance, stop_instance, reboot_instance, get_instance_network_info
 from utils import log_and_display, validate_aws_credentials, format_instance_info
 
@@ -15,7 +16,7 @@ class EC2ManagerApp(ctk.CTk):
         # AWS Access Key
         self.access_key_label = ctk.CTkLabel(self, text="AWS Access Key:")
         self.access_key_label.pack(pady=5)
-        self.access_key_entry = ctk.CTkEntry(self)
+        self.access_key_entry = ctk.CTkEntry(self, show="*")
         self.access_key_entry.pack(pady=5)
 
         # AWS Secret Key
@@ -90,7 +91,9 @@ class EC2ManagerApp(ctk.CTk):
     def update_instance_list(self):
         if self.aws_session:
             instances = list_instances(self.aws_session)
-            if instances:
+            if instances is None:
+                log_and_display(self.instance_info_text, "Failed to retrieve instances. Check your AWS permissions.", "error")
+            elif instances:
                 self.instance_listbox.delete(0, 'end')
                 for instance in instances:
                     instance_id = instance['InstanceId']
@@ -102,7 +105,10 @@ class EC2ManagerApp(ctk.CTk):
                 log_and_display(self.instance_info_text, "No instances found.", "warning")
 
     def on_instance_select(self, event):
-        selected_instance = self.instance_listbox.get(self.instance_listbox.curselection())
+        selection = self.instance_listbox.curselection()
+        if not selection:
+            return
+        selected_instance = self.instance_listbox.get(selection)
         instance_id = selected_instance.split(' ')[0]
         self.show_instance_info(instance_id)
 
@@ -115,7 +121,11 @@ class EC2ManagerApp(ctk.CTk):
             log_and_display(self.instance_info_text, f"Failed to retrieve info for instance {instance_id}.", "error")
 
     def start_instance(self):
-        selected_instance = self.instance_listbox.get(self.instance_listbox.curselection())
+        selection = self.instance_listbox.curselection()
+        if not selection:
+            log_and_display(self.instance_info_text, "Please select an instance first.", "warning")
+            return
+        selected_instance = self.instance_listbox.get(selection)
         instance_id = selected_instance.split(' ')[0]
         if start_instance(self.aws_session, instance_id):
             log_and_display(self.instance_info_text, f"Instance {instance_id} started successfully.")
@@ -123,16 +133,34 @@ class EC2ManagerApp(ctk.CTk):
             log_and_display(self.instance_info_text, f"Failed to start instance {instance_id}.", "error")
 
     def stop_instance(self):
-        selected_instance = self.instance_listbox.get(self.instance_listbox.curselection())
+        selection = self.instance_listbox.curselection()
+        if not selection:
+            log_and_display(self.instance_info_text, "Please select an instance first.", "warning")
+            return
+        selected_instance = self.instance_listbox.get(selection)
         instance_id = selected_instance.split(' ')[0]
+
+        # Confirmation dialog for destructive operation
+        if not messagebox.askyesno("Confirm Stop", f"Are you sure you want to stop instance {instance_id}?"):
+            return
+
         if stop_instance(self.aws_session, instance_id):
             log_and_display(self.instance_info_text, f"Instance {instance_id} stopped successfully.")
         else:
             log_and_display(self.instance_info_text, f"Failed to stop instance {instance_id}.", "error")
 
     def reboot_instance(self):
-        selected_instance = self.instance_listbox.get(self.instance_listbox.curselection())
+        selection = self.instance_listbox.curselection()
+        if not selection:
+            log_and_display(self.instance_info_text, "Please select an instance first.", "warning")
+            return
+        selected_instance = self.instance_listbox.get(selection)
         instance_id = selected_instance.split(' ')[0]
+
+        # Confirmation dialog for destructive operation
+        if not messagebox.askyesno("Confirm Reboot", f"Are you sure you want to reboot instance {instance_id}?"):
+            return
+
         if reboot_instance(self.aws_session, instance_id):
             log_and_display(self.instance_info_text, f"Instance {instance_id} rebooted successfully.")
         else:
