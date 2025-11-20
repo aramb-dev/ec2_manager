@@ -28,17 +28,20 @@
 EC2 Manager is a lightweight desktop application that provides a graphical interface for managing AWS EC2 instances without requiring the AWS Console. Users can:
 
 - Connect using AWS credentials (Access Key, Secret Key, Region)
-- List all EC2 instances in their account
-- Start, stop, and reboot instances
+- List all EC2 instances in their account with caching for performance
+- Start, stop, and reboot instances with confirmation dialogs
 - View detailed network information (IPs, DNS names, elastic IPs)
+- Use keyboard shortcuts for quick access (Ctrl+R, Ctrl+S, Ctrl+T, etc.)
+- Disconnect and reconnect to AWS without restarting the application
 
 ### Current State
 
-- **Total LOC:** 363 lines across 7 Python files
+- **Total LOC:** ~469 lines (after P2 improvements)
 - **Test Coverage:** 0% (no tests currently implemented)
-- **Documentation:** Basic README with usage instructions
+- **Documentation:** Comprehensive CLAUDE.md, README, and code review report
 - **CI/CD:** None configured
-- **Maturity Level:** Prototype/Small Project
+- **Code Quality:** P0 and P1 issues resolved, threading implemented, code refactored
+- **Maturity Level:** Hardened prototype ready for production testing
 
 ### Key Technologies
 
@@ -240,6 +243,40 @@ except ClientError as e:
 - AWS operations stay in `aws_connection/`
 - Pure utilities stay in `utils/`
 - No circular dependencies
+
+### Threading and Async Operations
+
+**Pattern for non-blocking AWS calls:**
+```python
+def perform_aws_operation(self):
+    def run_in_background():
+        # Disable UI
+        self.after(0, lambda: self._set_buttons_state("disabled"))
+
+        # Perform AWS operation
+        result = some_aws_function(self.aws_session)
+
+        # Update UI (thread-safe with self.after)
+        self.after(0, lambda: self.handle_result(result))
+        self.after(0, lambda: self._set_buttons_state("normal"))
+
+    thread = threading.Thread(target=run_in_background, daemon=True)
+    thread.start()
+```
+
+**Key principles:**
+- All AWS API calls run in background threads
+- Use `self.after(0, lambda: ...)` for thread-safe UI updates
+- Set `daemon=True` so threads don't block application exit
+- Disable buttons during operations to prevent race conditions
+
+### Caching Strategy
+
+- Instance list cached in `self.instance_cache`
+- Cache used on navigation, invalidated on state changes
+- `update_instance_list(use_cache=True)` for cached reads
+- Explicit refresh (`use_cache=False`) forces AWS API call
+- Benefits: Reduced API calls, faster UX, lower AWS costs
 
 ---
 
@@ -559,6 +596,16 @@ When implementing requested features:
 - `start_instance()` - `/home/user/ec2_manager/aws_connection/ec2_control.py`
 - `stop_instance()` - `/home/user/ec2_manager/aws_connection/ec2_control.py`
 - `reboot_instance()` - `/home/user/ec2_manager/aws_connection/ec2_control.py`
+- `_perform_instance_action()` - Generic method for instance operations in `gui/main_window.py`
+- `update_instance_list(use_cache)` - Load instances with optional caching
+
+### Keyboard Shortcuts (Added in P2)
+- **Ctrl+R** - Refresh instance list (force reload from AWS)
+- **Ctrl+S** - Start selected instance
+- **Ctrl+T** - Stop selected instance (with confirmation)
+- **Ctrl+B** - Reboot selected instance (with confirmation)
+- **Ctrl+D** - Disconnect from AWS
+- **F5** - Refresh instance list (force reload from AWS)
 
 ### Development Commands
 ```bash
